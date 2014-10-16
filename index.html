@@ -1,317 +1,199 @@
-<!DOCTYPE html>
-<meta charset="utf-8">
-<html>
-  <head>
-    <style>
-      rect.bordered {
-        stroke: #E6E6E6;
-        stroke-width:2px;   
-      }
 
-      text.mono {
-        font-size: 9pt;
-        font-family: Consolas, courier;
-        fill: #4D4D4D;
-      }
+<html lang="pt-br">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  
+    <title>'Bacanal eleitoral' - Estadão Dados</title>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index">
+  <meta name="creator" content="Diego Rabatone Oliveira">
+  <meta name="creator" content="Amanda Rossi">
+  <meta name="creator" content="José Roberto Toledo">
+  <meta name="creator" content="Daniel Bramatti">
+  <meta name="creator" content="Rodrigo Burgarelli">
+  <meta name="creator" content="Lucas de Abreu Maia">
+  <meta name="creator" content="Estadão Dados">
+  <meta name="creator" content="Estadão.com.br">
+  <meta property="og:site_name" content="Estadão Dados">
+  <meta property="og:locale" content="pt_BR">
 
-      text.axis-workweek {
-        fill: #4D4D4D;
-      }
+  <!-- meta tags específicas de cada projeto -->
+  <meta name="author" content="Rodrigo Burgarelli"> <!-- A pessoa responsável pelo desenvolvimento deste arquivo -->
+  <meta name="DC.creator " content="Rodrigo Burgarelli"> <!-- Desenvolvedor da página -->
+  <meta name="DC.creator.address" content="rodrigo.burgarelli1@gmail.com"> <!-- email do autor da página -->
 
-      text.axis-worktime {
-        fill: #4D4D4D;
-      }
-      div.tooltip {
-        position: absolute;
-        text-align: center;
-        width: auto;
-        height: auto;
-        padding: 6px;
-        font: 14px Arial;
-        background: lightsteelblue;
-        border: 0px;
-        border-radius: 8px;
-        pointer-events: none;
-      }
-      
-    </style>
-    <script src="http://d3js.org/d3.v3.js"></script>
-  </head>
-  <body>
-    <div id="chart"></div>
-    <script type="text/javascript" src="js/jquery.min.js"></script>
-    <script type="text/javascript">
-    d3.selection.prototype.moveToFront = function() {
-      return this.each(function(){
-        this.parentNode.appendChild(this);
-      });
-    };
+  <!-- O nome desta aplicação -->
+  
+    <meta name="application-name" content="'Bacanal eleitoral'">
+    <meta name="og:title" content="'Bacanal eleitoral'">
+  
+
+  <!-- Descrição curta e precisa do conteúdo desta página -->
+  
+    <meta name="description" content="Navegue no mapa das coligações eleitorais. #estadaodados">
+    <meta name="og:description" content="Navegue no mapa das coligações eleitorais. #estadaodados">
+  
+
+  <!-- Palavras reletantes relativas ao conteúdo dessa página. Em formato texto e separadas por vírgula. -->
+  
+    <meta name="keywords" content="eleições 2014, coligações, partidos, Congresso, Câmara, dados abertos, política, dataviz, opendata, jornalismo de dados, datajournalism">
+  
+
+  <meta property="og:url" content="http://estadaodados.com/bacanal_eleitoral/"/> <!-- ex: http://estadaodados.com/html/coligacoes/ -->
+
+  <!-- imagem que aparecerá no facebook quando o site for compartilhado -->
+  
+  <meta property="og:image" content="http://estadaodados.com/bacanal_eleitoral/imgs/bacanal.png"/>
+  
+
+  <!-- Le styles -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/bootstrap.css.map" rel="stylesheet">
+  <link href="css/bootstrap-theme.css.map" rel="stylesheet">
+  <link href="css/bootstrap-theme.min.css" rel="stylesheet">
+  <link href="css/estadaodados.css" rel="stylesheet">
+  <link href="css/jquery.cluetip.css" rel="stylesheet">
+  
+ 
     
-    function formata_uf(dado) {
-        ufs = dado.split("-")
-        ufs.pop()
-        if (ufs.length == 1) {
-            return ufs[0]
-        } else {
-            saida = ""
-            for (uf in ufs) {
-                if (uf < ufs.length -1) {
-                    saida += ufs[uf] +", "
-                } else {
-                    saida += " e " +ufs[uf]
-                }
-            }
-            return saida
-        }
-    }
+      <link href="css/bacanal.css" rel="stylesheet">
     
-    var div = d3.select("body").append("div")
-        .attr("class", "tooltip")
-          .style("opacity", 0);
-      var margin = { top: 60, right: 0, bottom: 100, left: 70 },
-          width_min = 1000,
-          width = Math.max($("#chart").width()/1.5 - margin.left - margin.right,width_min),
-          gridSize = Math.floor(width / 32),
-          height = width,
-          legendElementWidth = gridSize*2,
-          buckets = 9,
-          colors = ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"], // alternatively colorbrewer.YlGnBu[9]
-          partidos1 = ['PR', 'PSDB', 'SD', 'PSC', 'DEM', 'PPS', 'PSD', 'PTB', 'PRB', 'PP', 'PHS', 'PROS', 'PDT', 'PC do B', 'PT do B', 'PSDC', 'PEN', 'PSB', 'PTC', 'PSL', 'PV', 'PMDB', 'PRP', 'PTN', 'PT', 'PRTB', 'PPL', 'PMN', 'PSOL', 'PSTU', 'PCB', 'PCO'],
-          partidos2 = ['PR', 'PSDB', 'SD', 'PSC', 'DEM', 'PPS', 'PSD', 'PTB', 'PRB', 'PP', 'PHS', 'PROS', 'PDT', 'PC do B', 'PT do B', 'PSDC', 'PEN', 'PSB', 'PTC', 'PSL', 'PV', 'PMDB', 'PRP', 'PTN', 'PT', 'PRTB', 'PPL', 'PMN', 'PSOL', 'PSTU', 'PCB', 'PCO'];
-          
-      d3.csv("data.csv",
-        function(d) {
-            saida = {
-                partido1: d.partido1,
-                partido2: d.partido2,
-                value: +d.valor,
-                ufs: formata_uf(d.ufs),
-                soma: d.soma
-            }
-          return saida
-        },
-        function(error, data) {
-            
-          var colorScale = d3.scale.quantile()
-              .domain([0, buckets - 1, d3.max(data, function (d) { return d.value; })])
-              .range(colors);
+  
 
-          var svg = d3.select("#chart").append("svg")
-              .attr("width", width*1.1 + margin.left + margin.right)
-              .attr("height", height + margin.top + margin.bottom)
-              .append("g")
-              .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+  <!-- Fav and touch icons -->
+  <link rel="shortcut icon" href="imgs/favicon.png">
 
-          var dayLabels = svg.selectAll(".dayLabel")
-              .data(partidos1)
-              .enter().append("text")
-                .text(function (d) { return d; })
-                .attr("x", 0)
-                .attr("y", function (d, i) { return i * gridSize; })
-                .style("text-anchor", "end")
-                .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
-                .attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workweek" : "dayLabel mono axis"); })
-                .style("color","#aaa");
+</head>
 
-            var totais = svg.selectAll(".total_aliancas")
-                    .data(partidos1)
-                    .enter().append("text")
-                      .text(function (d) { 
-                          dado = data.filter(function (el) { return el.partido1 == d }); 
-                          if (dado.length > 0) 
-                              return dado[0].soma 
-                           else 
-                              return 0
-                      })
-                      .attr("partido",function(d) {return d})
-                      .attr("x", width*1.05)
-                      .attr("y", function (d, i) { return i * gridSize; })
-                      .style("text-anchor", "end")
-                      .attr("transform", "translate(-6," + gridSize / 1.5 + ")")
-                      .attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workweek" : "dayLabel mono axis"); })
-                      .style("color","#aaa");
+<body>
+  <header>
+  <nav class="navbar navbar-fixed-top">
+  <div class="container-fluid" id="navbar-edados">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse-edados">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="#"><img src="http://estadaodados.com/base/imgs/logo_estadao_dados.png" id="logo_estadao_dados" title="Estadão Dados"/></a>
+    </div>
+    <div class="navbar-collapse collapse navbar-collapse-edados" id="navbar-collapse-edados">
+      <ul class="nav navbar-nav navbar-edados">
+        <li class="dropdown active navbar-edados-projetos">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+            Projetos <b class="caret"></b>
+          </a>
+          <ul class="dropdown-menu" role="menu" aria-labelledby="dLabelProjetos">
+            <!--START_MENU_ITENS-->
+            <li role="presentation"><a href="/basometro">Basômetro</a></li>
+            <li role="presentation"><a href="/biomas2012">Biomas 2012</a></li>
+            <li role="presentation"><a href="/coligacoes">Coligações</a></li>
+            <li role="presentation"><a href="/cotas">Cotas</a></li>
+            <li role="presentation"><a href="/cruzador">Cruzador de Opiniões</a></li>
+            <li role="presentation"><a href="/eleicoes2012">Eleições 2012</a></li>
+            <li role="presentation"><a href="/ideb">IDEB</a></li>
+            <li role="presentation"><a href="/intencaodevoto">Intenção de Voto</a></li>
+            <li role="presentation"><a href="/perfil_eleitorado">Perfil do Eleitorado</a></li>
+            <li role="presentation"><a href="/piramide_eleitoral">Pirâmide Eleitoral</a></li>
+            <li role="presentation"><a href="/quespvcquer">Que SP vc quer?</a></li>
+            <li role="presentation"><a href="/religiao">Religiões</a></li>
+            <li role="presentation"><a href="/ringue2014">Ringue 2014</a></li>
+            <li role="presentation"><a href="/santamaria">Santa Maria</a></li>
+            <li role="presentation"><a href="/saopauloquebalanca">São Paulo que balança</a></li>
+            <li role="presentation"><a href="/doacoes2014">Siga o dinheiro</a></li>
+            <!--END_MENU_ITENS-->
+          </ul>
+        </li>
+        <li><a href="http://blog.estadaodados.com">Blog</a></li>
+        <li class="dropdown active">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button">
+            Estadão
+            <b class="caret"></b>
+          </a>
+          <ul class="dropdown-menu" role="menuEstadao" aria-labelledby="dLabelEstadao">
+            <li><a href="http://politica.estadao.com.br/" target="_top" title="POLÍTICA">Política</a></li>
+            <li><a href="http://economia.estadao.com.br/" target="_top" title="ECONOMIA">Economia</a></li>
+            <li><a href="http://esportes.estadao.com.br/" target="_top" title="ESPORTES">Esportes</a></li>
+            <li><a href="http://blogs.estadao.com.br/link/" target="_top" title="LINK">Link</a></li>
+            <li><a href="http://rta-se.estadao.com.br/" target="_top" title="DIVIRTA-SE">Divirta-se</a></li>
+            <li><a href="http://pme.estadao.com.br/" target="_top" title="PME">PME</a></li>
+            <li><a href="http://www.estadao.com.br/jornal-do-carro" target="_top" title="JORNAL DO CARRO">Jornal do Carro</a></li>
+            <li><a href="http://www.estadao.com.br/opiniao/" target="_top" title="OPINIÃO">Opinião</a></li>
+            <li><a href="http://acervo.estadao.com.br/" target="_top" title="ACERVO">Acervo</a></li>
+            <li><a href="http://radio.estadao.com.br/" target="_top" title="RÁDIO">Rádio</a></li>
+            <li><a href="http://territorioeldorado.limao.com.br" target="_top" title="Eldorado">Eldorado</a></li>
+            <li><a href="http://revistapiaui.estadao.com.br/" target="_top" title="Piauí">Piauí</a></li>
+            <li><a href="http://www.broadcastpolitico.com.br/experimente/" target="_top" title="Broadcast Político">Broadcast Político</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div>
+</nav> <!-- Fim da barra de navegação do Estadão Dados -->
 
-            svg.append("text").attr("x",width*1.02).attr("y",-5).text("TOTAL").attr("class", "dayLabel mono axis axis-workweek")
+  <!-- Cabeçalho -->
+  <div class="container-fluid text-center titulo-header">
+    <div class="col-sm-8 col-xs-12">
+      <h2>'Bacanal eleitoral'</h2>
+      <h4>O mapa das coligações para deputado federal em 2014</h4>
+    </div>
+    <div class="col-sm-2 social-sharing visible-sm visible-md visible-lg">
+      <!-- AddThis Button BEGIN -->
+      <div class="addthis_toolbox addthis_default_style addthis_16x16_style">
+        
+          <a class="addthis_button_twitter" addthis:title="Navegue no mapa das coligações eleitorais. #estadaodados"></a>
+          <a class="addthis_button_facebook" addthis:title="Navegue no mapa das coligações eleitorais. #estadaodados"></a>
+        
+      </div>
+      <!-- AddThis Button END -->
+    </div>
+  </div>
+</header>
 
+  <!-- Conteúdo Principal -->
+  <section id="main_content" class="container-fluid">
+         
+  
+<div id="chart"></div>
+    <br>
+    <span id="nota"><p> O gráfico acima é um "heatmap", ou seja, um "mapa de calor": quanto mais escuro o quadrado referente a dois partidos, maior é o número de Estados em que eles se coligam. </p>
+        <p>Pela regra eleitoral, um voto para um candidato a deputado por um certo partido pode ajudar a eleger qualquer outro candidato da mesma coligação, mesmo se for de outra sigla. O gráfico mostra que praticamente todas as siglas se aliam com todas as outras em ao menos um Estado - o que pode fazer com que, por exemplo, um voto no DEM pode ajudar a eleger um deputado federal do PT em uma UF ou um do PSDB em outra.</p>
+        <p>Os partidos que mais se coligam com outras siglas em cada Estado aparecem no topo da lista e a coluna da direita mostra quantas combinações de partidos e UFs cada uma das siglas tem. PR e PSDB fizeram 211 alianças diferentes cada para deputado federal neste ano e, por isso, estão no topo do mapa. Já o PCO não se coligou em nenhum Estado.
+        </p></span>
+  </section>
+  <aside id="leia_tambem" class="col-xs-12">
+  
+  </aside>
 
-          var timeLabels = svg.selectAll(".timeLabel")
-              .data(partidos2)
-              .enter().append("g")
-                  .attr("x", function(d, i) { return i * gridSize; })
-                  .attr("y", -15)
-                  .attr("transform", function (d,i) {
-                      return "translate("+(gridSize*i+10)+",-7)"   
-                  })
-                  .append("text")
-                    .text(function(d) { return d; })
-                    .attr("class", function(d, i) { return ((i >= 7 && i <= 16) ? "timeLabel mono axis axis-worktime" : "timeLabel mono axis"); })
-                    .style("text-anchor", "start")
-                    .attr("dy", ".35em")
-                    .attr("transform", function (d,i) {
-                        return "rotate(-45)"   
-                    })
-                    .style("color","#aaa");
-                
+  <!-- AddThis Button END -->
+  <footer class="col-xs-12 text-center">
+ <p>Daniel Bramatti, Diego Rabatone, José Roberto de Toledo, Lucas de Abreu Maia e Rodrigo Burgarelli</p>
+ <p><b>Grupo Estado</b> • Copyright © 2007-2014 • <a href="https://creativecommons.org/licenses/by-sa/3.0/br/">Alguns direitos reservados (CC-By-SA)</a></p>
+</footer>
 
-          var heatMap = svg.selectAll(".hour")
-              .data(data)
-              .enter().append("rect")
-              .attr("x", function(d) { return (partidos1.indexOf(d.partido1)) * gridSize; })
-              .attr("y", function(d) { return (partidos2.indexOf(d.partido2)) * gridSize; })
-              .attr("rx", 4)
-              .attr("ry", 4)
-              .attr("class", "hour bordered")
-              .attr("width", gridSize)
-              .attr("height", gridSize)
-              .style("fill", colors[0])
-              .attr("eixo_x", function (d) { return d.partido2})
-              .attr("eixo_y", function (d) { return d.partido1})
-              .on("mouseover",function(d) {
-                  div.transition()
-                      .duration(200)
-                      .style("opacity", 1);
-                  div.html(function() {
-                      if (d.value > 1) {
-                          return "<b>"+d.partido2 + " - " + d.partido1 + "</b>: "+ d.value +" estados</br>"+d.ufs 
-                      } else {
-                          return "<b>"+d.partido2 + " - " + d.partido1 + "</b>: "+ d.value +" estado </br>"+d.ufs
-                      }})
+  <!-- Le javascript
+  ================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+  <script type="text/javascript" src="js/jquery.min.js"></script>
+  <script type="text/javascript" src="js/bootstrap.min.js"></script>
+  
+    
+    <script type="text/javascript" src="js/d3.v3.min.js"></script>
+    <script type="text/javascript" src="js/jquery.cluetip.min.js"></script>
 
-                      .style("left", (d3.event.pageX + 10) + "px")
-                      .style("top", (d3.event.pageY + 28) + "px")
-                      
-              $("text:contains('"+d.partido2+"')[class*='dayLabel']").each(function () {
-                  if ($(this).text() == d.partido2) {
-                      $(this)
-                          .css("font-weight","bold")
-                          .css("font-size","12pt")
-                          }
-                      })
-                  
-               $("text[partido*='"+d.partido2+"']").each(function () {
-                     if ($(this).attr("partido") == d.partido2) {
-                             $(this)
-                                  .css("font-weight","bold")
-                                  .css("font-size","12pt")
-                                  }
-                     })
-                              
-              $("text:contains('"+d.partido1+"')[class*='timeLabel']").each(function () {
-                  if ($(this).text() == d.partido1) {
-                      $(this)
-                          .css("font-weight","bold")
-                          .css("font-size","12pt")
-                          
-                      }
-                  })
-              d3.selectAll("rect[eixo_x='"+d.partido2+"']")
-                  .style("stroke","#4D4D4D")
-                  .moveToFront()
-              d3.selectAll("rect[eixo_y='"+d.partido1+"']")
-                  .style("stroke","#4D4D4D")
-                  .moveToFront()
-                  
-              })
-              
-              .on("click",function(d) {
-                  div.transition()
-                      .duration(200)
-                      .style("opacity", 1);
-                  div.html("<b>"+d.partido2 + " - " + d.partido1 + "</b>: "+ d.value)
-                      .style("left", (d3.event.pageX + 10) + "px")
-                      .style("top", (d3.event.pageY + 28) + "px")
-              $("text:contains('"+d.partido2+"')[class*='dayLabel']").each(function () {
-                  if ($(this).text() == d.partido2) {
-                      $(this)
-                          .css("font-weight","bold")
-                          .css("font-size","12pt")
-                                     
-                          }
-                      })
-              $("text[partido*='"+d.partido2+"']").each(function () {
-                    if ($(this).attr("partido") == d.partido2) {
-                            $(this)
-                                  .css("font-weight","bold")
-                               .css("font-size","12pt")
-                                  }
-                            })
-            
-              $("text:contains('"+d.partido1+"')[class*='timeLabel']").each(function () {
-                  if ($(this).text() == d.partido1) {
-                      $(this)
-                          .css("font-weight","bold")
-                          .css("font-size","12pt")
-                          
-                      }
-                  })
-            
-              d3.selectAll("rect[eixo_x='"+d.partido2+"']")
-                  .style("stroke","#4D4D4D")
-                  .moveToFront()
-              d3.selectAll("rect[eixo_y='"+d.partido1+"']")
-                  .style("stroke","#4D4D4D")
-                  .moveToFront()
-                  
-                  
-              })
-              
-              
-              .on("mouseout", function(d) {
-                  div.transition()
-                      .duration(500)
-                      .style("opacity", 0);
-              $("text:contains('"+d.partido2+"')[class*='dayLabel']").each(function () {
-                  if ($(this).text() == d.partido2) {
-                      $(this)
-                          .css("font-weight","normal")
-                          .css("font-size","9pt")
-                                         
-                  }
-              })
-              $("text[partido*='"+d.partido2+"']").each(function () {
-                    if ($(this).attr("partido") == d.partido2) {
-                            $(this)
-                                 .css("font-weight","normal")
-                                 .css("font-size","9pt")
-                                 }
-                    })
-              
-              $("text:contains('"+d.partido1+"')[class*='timeLabel']").each(function () {
-                  if ($(this).text() == d.partido1) {
-                      $(this)
-                          .css("font-weight","normal")
-                          .css("font-size","9pt")
-                          
-                      }
-                  })
-              d3.selectAll("rect[eixo_x='"+d.partido2+"']").style("stroke","#E6E6E6")
-              d3.selectAll("rect[eixo_y='"+d.partido1+"']").style("stroke","#E6E6E6")
-                  
-                                        
-              });
-              
+    <script type="text/javascript" src="js/bacanal.js"></script>
+    
+  
 
-          heatMap.transition().duration(1000)
-              .style("fill", function(d) { return colorScale(d.value); });
-          
-          var legend = svg.selectAll(".legend")
-              .data([0].concat(colorScale.quantiles()), function(d) { return d; })
-              .enter().append("g")
-              .attr("class", "legend");
+  <!-- AddThis Button BEGIN -->
+  <script type="text/javascript">var addthis_config = {"data_track_addressbar":true};</script>
+  <script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-53751e9e65674220"></script>
+  <!-- AddThis Button END -->
 
-          legend.append("rect")
-            .attr("x", function(d, i) { return legendElementWidth * i; })
-            .attr("y", height)
-            .attr("width", legendElementWidth)
-            .attr("height", gridSize / 2)
-            .style("fill", function(d, i) { return colors[i]; });
+  <!-- google analytics -->
+  <script language="javascript" type="text/javascript" src="js/edados_analytics.js"></script>
 
-          legend.append("text")
-            .attr("class", "mono")
-            .text(function(d) { return "≥ " + Math.round(d); })
-            .attr("x", function(d, i) { return legendElementWidth * i; })
-            .attr("y", height + gridSize);
-      });
-    </script>
-  </body>
-</html>
+</body>
